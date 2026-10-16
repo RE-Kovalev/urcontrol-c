@@ -1,4 +1,4 @@
-**Language: ** [English](README.md) | [Русский](README.ru.md)
+Язык: [English](README.md) | [Русский](README.ru.md)
 
 # urcontrol-c -- управление звуковой картой Steinberg UR-C на языке C
 

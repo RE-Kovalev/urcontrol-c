@@ -1,4 +1,4 @@
-**Язык: ** [English](README.md) | [Русский](README.ru.md)
+Language: [English](README.md) | [Русский](README.ru.md)
 
 # urcontrol-c -- Steinberg UR-C audio interface control library in C
 
