@@ -1,6 +1,6 @@
 Language: [English](README.md) | [Русский](README.ru.md)
 
-# urcontrol-c -- Steinberg UR-C audio interface control library in C
+# urcontrol-c - Steinberg UR-C audio interface control library in C
 
 A port of the core functionality of [askoriy/urcontrol](https://github.com/askoriy/urcontrol) from **Pytrhon** to **C11**. Parameter compatibility has only been verified with the **UR22C**. Other devices, such as the UR24C and similar models, may also work, but compatibility is not guaranteed. The library communicates with the audio interface's internal DSP mixer MIDI port via **ALSA rawmidi**.
 
@@ -15,8 +15,8 @@ make
 
 Build outputs:
 
-- `liburcontrol.a` -- C11 library;
-- `urcontrol-cli` -- command-line tool.
+- `liburcontrol.a` - C11 library;
+- `urcontrol-cli` - command-line tool.
 
 ## Finding the MIDI Port
 
@@ -69,18 +69,20 @@ The `--timeout 3000` option sets the timeout in milliseconds.
 
 ## Project Structure
 
-- `urcontrol.h` -- public C API;
-- `urcontrol.c` -- SysEx handling, ALSA MIDI transport, threading, and response handling;
-- `urcontrol_params.c` -- named parameters with IDs, ranges, and notes;
-- `urcontrol_cli.c` -- command-line argument parsing and commands;
-- `Makefile` -- build configuration for the library and tests;
-- `LICENSE` -- software license.
+- `urcontrol.h` - public C API;
+- `urcontrol.c` - SysEx handling, ALSA MIDI transport, threading, and response handling;
+- `urcontrol_params.c` - named parameters with IDs, ranges, and notes;
+- `urcontrol_cli.c` - command-line argument parsing and commands;
+- `Makefile` - build configuration for the library and tests;
+- `LICENSE` - software license.
 
 ## License and attribution
 
 Based on [askoriy/urcontrol](https://github.com/askoriy/urcontrol) by Oleksandr Skoryi, licensed under the MIT License.
 
 The original copyright notice is preserved in the `LICENSE` file.
+
+**Steinberg**, **Yamaha**, **UR-C** and **dspMixFx** are trademarks of their respective owners.
 
 **THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
