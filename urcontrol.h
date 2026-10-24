@@ -40,6 +40,12 @@ extern "C" {
 #define URC_LENGTH_KEEPALIVE 9     ///< Length of a Keepalive SysEx message (bytes) @n
                                    ///< Длина сообщения SysEx - Keepalive в байтах   
 
+#define URC_LENGTH_METER 364       ///< Verified length of a UR22C meter SysEx packet
+                                   ///< Подтверждённая длина SysEx-пакета с уровнями сигнала UR22C
+
+#define URC_METER_SLOTS 89         ///< Number of four-byte meter slots in that packet
+                                   ///< Количество измерителей уровня сигнала (по 4 байта на каждый) в пакете
+
 #define URC_LENGTH_MAX_SYSEX 16384 ///< Maximum accepted SysEx size (bytes), including F0 and F7 @n
                                    ///< Максимальный размер SysEx в байтах с F0 и F7 включительно
 
@@ -140,6 +146,18 @@ typedef struct
     int32_t value;         ///< Signed value for CHANGE/REPLY @n
                            ///< Величина со знаком для CHANGE/REPLY
 } urc_message;
+
+/** 
+ * Decoded raw values for one meter slot (not calibrated dBFS). @n
+ * Декодированные значения одного измерителя сигнала в единицах протокола
+ */
+typedef struct
+{
+    int16_t current; ///< Momentary level, signed 14-bit protocol units
+                     ///< Текущий уровень сигнала, знаковое 14-бит в единицах протокола
+    int16_t peak;    ///< Recent peak, signed 14-bit protocol units
+                     ///< Пиковый уровень сигнала за недавний период, знаковое 14-бит
+} urc_meter_level;
 
 #define URC_NO_DEFAULT INT32_MAX ///< Default value is unavailable
                                  ///< Значение по умолчанию не доступно
@@ -316,6 +334,29 @@ void urc_encode_keepalive(uint8_t output[URC_LENGTH_KEEPALIVE]);
  */
 int urc_decode(const uint8_t *data, size_t length, urc_message *result);
 
+/** 
+ * @brief Decode one slot in a complete UR22C meter packet. @n
+ * Декодировать значения одного измерителя увроня сигнала
+ * @param raw Complete SysEx buffer (including F0 and F7). @n
+ * полный пакет SysEx (включая F0 и F7)
+ * @param length Must be URC_LENGTH_METER. @n
+ * длина пакета, должна быть равна URC_LENGTH_METER
+ * @param index Slot index, 0 for Input 1 and 1 for Input 2. @n
+ * индекс измерителя, начиная с 0 для Input 1, 1 для Input 2.
+ * @param level Filled on success; not modified on error. @n
+ * структура под уровни сигнала, заполняется при успешном выполнении
+ * @return URC_OK, URC_ERR_ARGUMENT (malformed packet), or URC_ERR_RANGE. @n
+ * Возвращает URC_OK, URC_ERR_ARGUMENT (некорректный пакет) или URC_ERR_RANGE
+ * при недопустимом индексе
+ * @note The current/peak values use signed 14-bit encoding. A scale of
+ * 0.1 dB per unit appears consistent with UR22C measurements but is not
+ * formally calibrated. Other UR-C models have not been verified. @n
+ * Значения current/peak используют знаковое 14-битное кодирование.
+ * Предполагаемый масштаб составляет 0,1 дБ на единицу, но точная
+ * калибровка не подтверждена. Работа с другими моделями UR-C не проверялась.
+ */
+int urc_meter_decode(const uint8_t *raw, size_t length, size_t index, urc_meter_level *level);
+
 /** @} */
 
 /** @defgroup urc_device_api Device and MIDI transport
@@ -396,6 +437,32 @@ int urc_send_sysex(urc_device *device, const uint8_t *message, size_t length);
  *  Возвращает результат urc_send_sysex().
  */
 int urc_send_keepalive(urc_device *device);
+
+/**
+ * @brief Start UR22C meter streaming (meter ON followed by one keepalive). @n
+ * Запустить передачу уровней сигнала UR22C (meter ON и один keepalive).
+ * @note Register the callback before calling this function. The caller must send
+ * urc_send_keepalive(device) at least every few seconds (2 s verified).
+ * No internal timer or thread is created. URC_OK means commands were sent,
+ * not that the device accepted them. @n
+ * Зарегистрируйте callback перед вызовом функции. Вызывающая сторона должна
+ * периодически отправлять urc_send_keepalive(device) (проверенный интервал - 2 секунды).
+ * Функция не создаёт внутренних таймеров или потоков.
+ * URC_OK означает успешную отправку команд, но не подтверждает их принятие устройством.
+ * @return Result of the SysEx send operation. @n
+ * Результат операции отправки SysEx.
+ */
+int urc_meters_start(urc_device *device);
+
+/**
+ * @brief Stop UR22C meter streaming (meter OFF). @n
+ * Остановить передачу уровней сигнала UR22C (meter OFF).
+ * @note Stop the application's keepalive timer before calling this function. @n
+ * Остановите таймер отправки keepalive в приложении перед вызовом функции.
+ * @return Result of the SysEx send operation. @n
+ * Результат операции отправки SysEx.
+ */
+int urc_meters_stop(urc_device *device);
 
 /** @brief Send a parameter change without readback confirmation. @n
  *  Отправить запись параметра без последующего чтения.

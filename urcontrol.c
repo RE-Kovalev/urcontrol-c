@@ -682,6 +682,64 @@ int urc_send_keepalive(urc_device *device)
     return urc_send_sysex(device, message, sizeof(message));
 }
 
+int urc_meter_decode(const uint8_t *raw, size_t length, size_t index, urc_meter_level *level)
+{
+    if (raw == NULL
+    ||  level == NULL
+    ||  length != URC_LENGTH_METER)
+        return URC_ERR_ARGUMENT;
+
+    if (index >= URC_METER_SLOTS)
+        return URC_ERR_RANGE;
+
+    static const uint8_t meter_header[] = { 0xF0, 0x43, 0x10, 0x3E, 0x14, 0x02, 0x03 };
+
+    if (memcmp(raw, meter_header, sizeof(meter_header)) != 0
+    ||  raw[length - 1] != 0xF7)
+        return URC_ERR_ARGUMENT;
+
+    for (size_t i = 1; i < length - 1; ++i)
+        if (raw[i] & 0x80)
+            return URC_ERR_ARGUMENT;
+
+    size_t offset = sizeof(meter_header) + index * 4;
+
+    int current = (raw[offset] << 7) | raw[offset + 1];
+    int peak = (raw[offset + 2] << 7) | raw[offset + 3];
+
+    if (current & 0x2000)
+        current -= 0x4000;
+
+    if (peak & 0x2000)
+        peak -= 0x4000;
+
+    level->current = (int16_t)current;
+    level->peak = (int16_t)peak;
+
+    return URC_OK;
+}
+
+int urc_meters_start(urc_device *device)
+{
+    static const uint8_t meter_on[] = { 0xf0, 0x43, 0x30, 0x3e, 0x14, 0x02, 0x03, 0x32, 0x7f, 0xf7 };
+
+    int result = urc_send_sysex(device, meter_on, sizeof(meter_on));
+    if (result != URC_OK)
+        return result;
+
+    result = urc_send_keepalive(device);
+    if (result != URC_OK)
+        urc_meters_stop(device);
+    return result;
+}
+
+int urc_meters_stop(urc_device *device)
+{
+    static const uint8_t meter_off[] = { 0xf0, 0x43, 0x30, 0x3e, 0x14, 0x02, 0x03, 0x32, 0x00, 0xf7 };
+
+    return urc_send_sysex(device, meter_off, sizeof(meter_off));
+}
+
 int urc_change_parameter(urc_device *device, uint16_t parameter,
                          int32_t value, uint8_t channel)
 {
